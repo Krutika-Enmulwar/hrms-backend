@@ -8,10 +8,6 @@ function createServer() {
   app.use('/api/auth', authRoutes);
   app.use('/api/employees', employeeRoutes);
 
-  app.get('/', (req, res) => {
-    res.send('HRMS backend running');
-  });
-
   return app;
 }
 
