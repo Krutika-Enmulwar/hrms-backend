@@ -1,4 +1,4 @@
-const { createUser } = require('../models/usermodel');
+// const { createUser } = require('../usermodel');
 const pool = require('../config/db');
 
 const register = async (req, res) => {
@@ -9,12 +9,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'All fields required' });
     }
 
-    const user = await createUser({
-      name,
-      email,
-      password, //bcrypt later
-      role,
-    });
+    // TODO: create user via sequelize
 
     res.status(201).json(user);
   } catch (err) {
@@ -27,10 +22,7 @@ const login = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const result = await pool.query(
-      'SELECT id, name, email, role FROM users WHERE email = $1',
-      [email]
-    );
+    // TODO: verify via sequelize
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Invalid email' });
