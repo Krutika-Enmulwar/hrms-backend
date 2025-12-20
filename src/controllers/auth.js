@@ -1,5 +1,5 @@
-// const { createUser } = require('../usermodel');
-const pool = require('../config/db');
+const bcrypt = require("bcrypt");
+const User = require("../models/usermodel");
 
 const register = async (req, res) => {
   try {
@@ -11,7 +11,26 @@ const register = async (req, res) => {
 
     // TODO: create user via sequelize
 
-    res.status(201).json(user);
+    // check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      name,
+      email,
+      passwordHash,
+    });
+
+    res.status(201).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Registration failed' });
@@ -20,15 +39,27 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     // TODO: verify via sequelize
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid email' });
+    // find user via Sequelize
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    res.json(result.rows[0]);
+    // compare password
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Login failed' });
