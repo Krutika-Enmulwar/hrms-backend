@@ -12,7 +12,7 @@ const sequelize = DATABASE_URL
       logging: false, // set true to see SQL logs
     })
   : new Sequelize(
-      process.env.PG_DATABASE || "hrmsdb",
+      process.env.PG_DATABASE || "hrms_db",
       process.env.PG_USER || "vaishnav",
       process.env.PG_PASSWORD || "vaishnav",
       {

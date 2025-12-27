@@ -13,37 +13,102 @@ const getEmployees = async (req, res) => {
   }
 };
 
-//cloud storage placeholder for now
-const updateProfileImage = async (req, res) => {
+const assignManager = async (req, res) => {
   try {
-    const { userId, imageUrl } = req.body;
+    const { id } = req.params;
+    const { reportingId } = req.body;
 
-    if (!userId || !imageUrl) {
-      return res.status(400).json({
-        message: "userId and imageUrl are required",
-      });
+    if (!reportingId) {
+      return res.status(400).json({ message: "reportingId is required" });
     }
 
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (id === reportingId) {
+      return res.status(400).json({ message: "Employee cannot report to self" });
     }
 
-    user.profileImageUrl = imageUrl;
-    await user.save();
+    const employee = await User.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const manager = await User.findByPk(reportingId);
+    if (!manager) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
+
+    employee.reportingId = reportingId;
+    await employee.save();
 
     res.json({
-      message: "Profile image path saved successfully",
-      profileImageUrl: user.profileImageUrl,
+      message: "Manager assigned successfully",
+      employeeId: employee.id,
+      managerId: manager.id,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update profile image" });
+    res.status(500).json({ message: "Failed to assign manager" });
+  }
+};
+
+const getManager = async (req, res) => {
+  try {
+    const employee = await User.findByPk(req.params.id);
+
+    if (!employee || !employee.reportingId) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
+
+    const manager = await User.findByPk(employee.reportingId);
+
+    res.json(manager);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch manager" });
+  }
+};
+
+const getDirectReports = async (req, res) => {
+  try {
+    const reports = await User.findAll({
+      where: { reportingId: req.params.id },
+    });
+
+    res.json(reports);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch reports" });
+  }
+};
+
+const getSubtree = async (req, res) => {
+  try {
+    const buildTree = async (managerId) => {
+      const reports = await User.findAll({
+        where: { reportingId: managerId },
+      });
+
+      const result = [];
+      for (const emp of reports) {
+        result.push({
+          ...emp.toJSON(),
+          reports: await buildTree(emp.id),
+        });
+      }
+      return result;
+    };
+
+    const tree = await buildTree(req.params.id);
+    res.json(tree);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch hierarchy" });
   }
 };
 
 module.exports = {
   getEmployees,
-  updateProfileImage,
+  assignManager,
+  getManager,
+  getDirectReports,
+  getSubtree,
 };
-
